@@ -7,6 +7,8 @@ ComfyUI custom node for [Fish Audio S2 Pro](https://huggingface.co/fishaudio/s2-
 ## Prerequisite: Fish Speech API server
 
 1. **Download the model**
+   - **From ComfyUI:** Add node **audio → tts → Download Fish Audio S2 Pro Model**, leave `local_dir` empty (uses `checkpoints/s2-pro` under your ComfyUI checkpoints folder), then run the workflow. The node outputs the path where the model was saved; use that path when starting the API server below.
+   - **From CLI:**
    ```bash
    pip install huggingface_hub[cli]
    hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
@@ -49,9 +51,16 @@ ComfyUI custom node for [Fish Audio S2 Pro](https://huggingface.co/fishaudio/s2-
    ```
 
 3. **Restart ComfyUI**
-   The node appears under **Add Node → audio → tts** as **Fish Audio S2 Pro TTS**.
+   The nodes appear under **Add Node → audio → tts**: **Fish Audio S2 Pro TTS** and **Download Fish Audio S2 Pro Model**.
 
 ## Nodes
+
+### Download Fish Audio S2 Pro Model
+
+- **local_dir** (optional): Directory where the model will be downloaded. If empty, uses `checkpoints/s2-pro` under ComfyUI's checkpoints folder (or `~/checkpoints/s2-pro` if that is not available).
+- **Output:** `model_path` (STRING) — the absolute path to the downloaded model. Use this path for `--llama-checkpoint-path` and `--decoder-checkpoint-path` when starting the Fish Speech API server.
+
+The model is downloaded from [fishaudio/s2-pro](https://huggingface.co/fishaudio/s2-pro) on first run; existing files are reused on subsequent runs.
 
 ### Fish Audio S2 Pro TTS
 

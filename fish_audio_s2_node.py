@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 from typing import Any
 
 import numpy as np
@@ -21,6 +22,13 @@ except ImportError as e:
         "comfyui_fish_audio_s2 requires requests, soundfile, and librosa. "
         "Install with: pip install -r requirements.txt"
     ) from e
+
+try:
+    from huggingface_hub import snapshot_download
+except ImportError:
+    snapshot_download = None
+
+HF_REPO_ID = "fishaudio/s2-pro"
 
 S2_SAMPLE_RATE = 44100
 DEFAULT_API_URL = "http://127.0.0.1:8080"
@@ -93,6 +101,50 @@ def _wav_bytes_to_audio(wav_bytes: bytes) -> tuple[torch.Tensor, int]:
         data = data.mean(axis=1)
     waveform = torch.from_numpy(data).float().unsqueeze(0).unsqueeze(0)
     return waveform, int(sr)
+
+
+def _default_model_dir() -> str:
+    """Default directory for S2 Pro model (under ComfyUI checkpoints if available)."""
+    try:
+        import folder_paths as fp
+        dirs = fp.get_folder_paths("checkpoints")
+        if dirs:
+            return os.path.join(dirs[0], "s2-pro")
+    except Exception:
+        pass
+    return os.path.join(os.path.expanduser("~"), "checkpoints", "s2-pro")
+
+
+class FishAudioS2DownloadModel:
+    """Download Fish Audio S2 Pro model from Hugging Face when needed."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {},
+            "optional": {
+                "local_dir": ("STRING", {"default": "", "placeholder": "Leave empty for default (checkpoints/s2-pro)"}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("model_path",)
+    FUNCTION = "run"
+    CATEGORY = "audio/tts"
+
+    def run(self, local_dir: str = ""):
+        if snapshot_download is None:
+            raise RuntimeError(
+                "FishAudioS2DownloadModel: huggingface_hub is required. "
+                "Install with: pip install huggingface_hub"
+            )
+        target = (local_dir or "").strip()
+        if not target:
+            target = _default_model_dir()
+        target = os.path.abspath(os.path.expanduser(target))
+        os.makedirs(target, exist_ok=True)
+        snapshot_download(repo_id=HF_REPO_ID, local_dir=target, local_dir_use_symlinks=False)
+        return (target,)
 
 
 class FishAudioS2TTSNode:
